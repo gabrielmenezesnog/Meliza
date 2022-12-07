@@ -2,6 +2,7 @@ package com.gmnsystems.meliza.controllers;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import com.gmnsystems.meliza.dto.RegisterDTO;
 import com.gmnsystems.meliza.models.RoleModel;
 import com.gmnsystems.meliza.models.UserModel;
 import com.gmnsystems.meliza.repositories.RoleRepository;
+import com.gmnsystems.meliza.repositories.UserRepository;
 import com.gmnsystems.meliza.services.UserService;
 
 @RestController
@@ -37,14 +39,18 @@ public class UserAuthController {
   private PasswordEncoder passwordEncoder;
   private JWTGenerator jwtGenerator;
 
+  private UserRepository userRepository;
+
   @Autowired
   public UserAuthController(AuthenticationManager authenticationManager, UserService userService,
-      RoleRepository roleRepository, PasswordEncoder passwordEncoder, JWTGenerator jwtGenerator) {
+      RoleRepository roleRepository, PasswordEncoder passwordEncoder, JWTGenerator jwtGenerator,
+      UserRepository userRepository) {
     this.authenticationManager = authenticationManager;
     this.userService = userService;
     this.roleRepository = roleRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtGenerator = jwtGenerator;
+    this.userRepository = userRepository;
   }
 
   // Endpoint para registrar um usuário
@@ -79,7 +85,10 @@ public class UserAuthController {
     // usuário possa manter uma sessão, sem precisar
     // logar todas as vezes que precisar acessar um endpoint
     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    Optional<UserModel> user = userRepository.findByUsername(loginDTO.getUsername());
+
     String token = jwtGenerator.generateToken(authentication);
-    return new ResponseEntity<>(new AuthResponseDTO(token), HttpStatus.OK);
+    return new ResponseEntity<>(new AuthResponseDTO(user.get().getIdUser(), loginDTO.getEmail(), token), HttpStatus.OK);
   }
 }
